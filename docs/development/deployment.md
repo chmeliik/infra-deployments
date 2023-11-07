@@ -217,6 +217,43 @@ Build-service should create a new pull request in your forked devfile-sample-pyt
 
 TODO: why does commenting `/ok-to-test` on the PR not do anything?
 
+### Testing code changes
+
+#### Deploying your versions of operators
+
+First, you will need to build the container image (typically with `make docker-build` in the operator
+repository) and push the image to a publically accessible container repository. Then, set the image
+reference for the corresponding service in `preview.env`. For example, to override the build-service
+image, set:
+
+```shell
+export BUILD_SERVICE_IMAGE_REPO=quay.io/<quay_username>/build-service
+export BUILD_SERVICE_IMAGE_TAG=my-test-v1
+```
+
+Then, run the `hack/preview.sh` script, which will deploy the overriden image.
+
+To update the operator after you've made some more changes, build a new image and push it to the same
+repository under a new tag. Set the new tag in `preview.env` and run `hack/preview.sh` again.
+
+TODO: is there a better way?
+
+#### Deploying your versions of CRDs
+
+Find the reference to the upstream repository where your CRDs are located. For example, for build-service,
+it's in [components/build-service/base/kustomization.yaml][build-service-kustomization]:
+
+```yaml
+resources:
+- allow-argocd-to-manage.yaml
+- https://github.com/redhat-appstudio/build-service/config/default?ref=99cebd0a67a6b25b8ccffb76522861f526c762de
+```
+
+Replace this reference with a reference to your fork and the commit you would like to test. Create
+a new branch, commit the changes and run `hack/preview.sh`.
+
+TODO: is this the way?
+
 ## Optional: OpenShift Local Post-Bootstrap Configuration
 
 Even with 6 CPU cores, you will need to reduce the CPU resource requests for each StoneSoup application. Either run `./hack/reduce-gitops-cpu-requests.sh` which will set resources.requests.cpu values to 50m or use `kubectl edit argocd/openshift-gitops -n openshift-gitops` to reduce the values to some other value. More details are in the FAQ below.
@@ -226,3 +263,4 @@ Even with 6 CPU cores, you will need to reduce the CPU resource requests for eac
 [github-get-access-token]: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic
 [github-install-app]: https://docs.github.com/en/apps/using-github-apps/installing-your-own-github-app
 [pac-setup-manual]: https://pipelinesascode.com/docs/install/github_apps/#setup-manually
+[build-service-kustomization]: https://github.com/redhat-appstudio/infra-deployments/blob/main/components/build-service/base/kustomization.yaml
